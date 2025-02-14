@@ -6,13 +6,20 @@
 #include <type_traits>  // For std::is_floating_point
 #include <complex>
 
+#include <algorithm>
+
+#define DEBUG 0
+#define RUN 1
 
 class Numeric
 {
     public:
     Numeric()
     {
+        #if DEBUG == 1
         std::cout << "Numeric Class constructor is called" << std::endl;
+        #endif // DEBUG
+
     }
 
     // Factory function to create derived objects
@@ -30,7 +37,9 @@ class Numeric
 
     virtual ~Numeric()
     {
+        #if DEBUG == 1
         std::cout << "Numeric Class destructor is called" << std::endl;
+        #endif // DEBUG
     }
 
 };
@@ -53,7 +62,9 @@ class IntNumeric : public Numeric
     public:
     IntNumeric(int value) : intValue(value)
     {
+        #if DEBUG == 1
         std::cout << "IntNumeric Class constructor with value: " << value << std::endl;
+        #endif // DEBUG
     }
 
     // Helper function to cast a base class reference/pointer to a derived class
@@ -106,7 +117,9 @@ class IntNumeric : public Numeric
 
     ~IntNumeric()
     {
+        #if DEBUG == 1
         std::cout << "IntNumeric Class destructor with value: " << intValue << std::endl;
+        #endif // DEBUG
     }
 };
 
@@ -125,7 +138,9 @@ class FloatNumeric : public Numeric
     
     FloatNumeric(T float_val): floatValue(float_val)
     {
+        #if DEBUG == 1
         std::cout << "FloatNumeric class constructor is called with value: " << floatValue << std::endl;
+        #endif // DEBUG
     }
 
     std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override
@@ -179,7 +194,9 @@ class FloatNumeric : public Numeric
 
     ~FloatNumeric()
     {
+        #if DEBUG == 1
         std::cout << "FloatNumeric Class destructor with value: " << floatValue << std::endl;
+        #endif // DEBUG
     }
     
 };
@@ -194,7 +211,9 @@ class ComplexNumeric : public Numeric
     ComplexNumeric(std::complex<T> num)
     : complexNum(num) 
     {
+        #if DEBUG == 1
         std::cout<<"ComplexNumeric Constructor is calledwith value: " << complexNum << std::endl;
+        #endif // DEBUG
     }
 
     std::unique_ptr<Numeric> sumOperation(const Numeric& second)override
@@ -267,8 +286,10 @@ class ComplexNumeric : public Numeric
 
     ~ComplexNumeric()
     {
+        #if DEBUG == 1
         std::cout << "ComplexNumeric Class destructor with Real value: " << complexNum.real()
         << " And for Img value: "<< complexNum.imag() <<std::endl;
+        #endif // DEBUG
     }
 
 };
@@ -285,7 +306,9 @@ class charNumeric : public Numeric
     
     charNumeric(T char_val): charValue(char_val)
     {
+        #if DEBUG == 1
         std::cout << "CharNumeric class constructor is calledwith value: " << charValue << std::endl;
+        #endif // DEBUG
     }
     
     std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override
@@ -331,7 +354,9 @@ class charNumeric : public Numeric
     }
     ~charNumeric()
     {
+        #if DEBUG == 1
         std::cout << "CharNumeric Class destructor with value: " << charValue << std::endl;
+        #endif // DEBUG
     }
 };
 
@@ -353,164 +378,69 @@ std::unique_ptr<Numeric> Numeric::create(T value) {
 
 int main() {
     try {
-        // Test IntNumeric
-        auto num1 = Numeric::create(5);        // IntNumeric
-        auto num2 = Numeric::create(10);       // IntNumeric
-        auto numZero = Numeric::create(0);     // IntNumeric
-        auto numNegative = Numeric::create(-5); // IntNumeric
+        // Create a vector to store Numeric objects
+        std::vector<std::unique_ptr<Numeric>> numericVector;
 
-        // Sum
-        std::cout << "Sum (Int): " << num1->sumOperation(*num2)->toString() << std::endl;
+        // Add different numeric types to the vector
+        numericVector.push_back(Numeric::create(5));                     // IntNumeric
+        numericVector.push_back(Numeric::create(10));                    // IntNumeric
+        numericVector.push_back(Numeric::create(0));                     // IntNumeric
+        numericVector.push_back(Numeric::create(-5));                    // IntNumeric
+        numericVector.push_back(Numeric::create(5.5f));                  // FloatNumeric<float>
+        numericVector.push_back(Numeric::create(10.5f));                 // FloatNumeric<float>
+        numericVector.push_back(Numeric::create(0.0f));                  // FloatNumeric<float>
+        numericVector.push_back(Numeric::create(-5.5f));                 // FloatNumeric<float>
+        numericVector.push_back(Numeric::create(5.5));                   // FloatNumeric<double>
+        numericVector.push_back(Numeric::create(10.5));                  // FloatNumeric<double>
+        numericVector.push_back(Numeric::create(0.0));                   // FloatNumeric<double>
+        numericVector.push_back(Numeric::create(-5.5));                  // FloatNumeric<double>
+        numericVector.push_back(Numeric::create(std::complex<float>(3.0f, 4.0f))); // ComplexNumeric<float>
+        numericVector.push_back(Numeric::create(std::complex<float>(5.0f, 6.0f))); // ComplexNumeric<float>
+        numericVector.push_back(Numeric::create(std::complex<float>(0.0f, 0.0f))); // ComplexNumeric<float>
+        numericVector.push_back(Numeric::create('a'));                   // CharNumeric<char>
 
-        // Subtraction
-        std::cout << "Subtraction (Int): " << num1->subtractOperation(*num2)->toString() << std::endl;
-
-        // Multiplication
-        std::cout << "Multiplication (Int): " << num1->multiplyOperation(*num2)->toString() << std::endl;
-
-        // Division
-        std::cout << "Division (Int): " << num1->divideOperation(*num2)->toString() << std::endl;
-
-        // Division by zero (should throw an exception)
-        try {
-            std::cout << "Division by zero (Int): " << num1->divideOperation(*numZero)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Division by zero exception (Int): " << e.what() << std::endl;
+        // Perform operations on the vector elements
+        std::cout << "Vector Contents:" << std::endl;
+        for (const auto& num : numericVector) {
+            std::cout << num->toString() << std::endl;
         }
 
-        // Comparison
-        std::cout << "Is num1 less than num2? " << (num1->lessThanOperation(*num2) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num1 greater than num2? " << (num1->greaterThanOperation(*num2) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num1 equal to num2? " << (num1->equalOperation(*num2) ? "Yes" : "No") << std::endl;
-
-        // Test FloatNumeric with float
-        auto num3 = Numeric::create(5.5f);     // FloatNumeric<float>
-        auto num4 = Numeric::create(10.5f);    // FloatNumeric<float>
-        auto numFloatZero = Numeric::create(0.0f); // FloatNumeric<float>
-        auto numFloatNegative = Numeric::create(-5.5f); // FloatNumeric<float>
-
-        // Sum
-        std::cout << "Sum (Float): " << num3->sumOperation(*num4)->toString() << std::endl;
-
-        // Subtraction
-        std::cout << "Subtraction (Float): " << num3->subtractOperation(*num4)->toString() << std::endl;
-
-        // Multiplication
-        std::cout << "Multiplication (Float): " << num3->multiplyOperation(*num4)->toString() << std::endl;
-
-        // Division
-        std::cout << "Division (Float): " << num3->divideOperation(*num4)->toString() << std::endl;
-
-        // Division by zero (should throw an exception)
-        try {
-            std::cout << "Division by zero (Float): " << num3->divideOperation(*numFloatZero)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Division by zero exception (Float): " << e.what() << std::endl;
+        // Perform arithmetic operations on selected elements
+        std::cout << "Arithmetic Operations:" << std::endl;
+        for (size_t i = 0; i < numericVector.size() - 1; ++i) {
+            std::cout << "Sum: " << numericVector[i]->sumOperation(*numericVector[i + 1])->toString() << std::endl;
+            std::cout << "Subtraction: " << numericVector[i]->subtractOperation(*numericVector[i + 1])->toString() << std::endl;
+            std::cout << "Multiplication: " << numericVector[i]->multiplyOperation(*numericVector[i + 1])->toString() << std::endl;
+            try {
+                std::cout << "Division: " << numericVector[i]->divideOperation(*numericVector[i + 1])->toString() << std::endl;
+            } catch (const std::exception& e) {
+                std::cout << "Division exception: " << e.what() << std::endl;
+            }
         }
 
-        // Comparison
-        std::cout << "Is num3 less than num4? " << (num3->lessThanOperation(*num4) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num3 greater than num4? " << (num3->greaterThanOperation(*num4) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num3 equal to num4? " << (num3->equalOperation(*num4) ? "Yes" : "No") << std::endl;
-
-        // Test FloatNumeric with double
-        auto num5 = Numeric::create(5.5);      // FloatNumeric<double>
-        auto num6 = Numeric::create(10.5);     // FloatNumeric<double>
-        auto numDoubleZero = Numeric::create(0.0); // FloatNumeric<double>
-        auto numDoubleNegative = Numeric::create(-5.5); // FloatNumeric<double>
-
-        // Sum
-        std::cout << "Sum (Double): " << num5->sumOperation(*num6)->toString() << std::endl;
-
-        // Subtraction
-        std::cout << "Subtraction (Double): " << num5->subtractOperation(*num6)->toString() << std::endl;
-
-        // Multiplication
-        std::cout << "Multiplication (Double): " << num5->multiplyOperation(*num6)->toString() << std::endl;
-
-        // Division
-        std::cout << "Division (Double): " << num5->divideOperation(*num6)->toString() << std::endl;
-
-        // Division by zero (should throw an exception)
-        try {
-            std::cout << "Division by zero (Double): " << num5->divideOperation(*numDoubleZero)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Division by zero exception (Double): " << e.what() << std::endl;
+        // Perform comparison operations
+        std::cout << "Comparison Operations:" << std::endl;
+        for (size_t i = 0; i < numericVector.size() - 1; ++i) {
+            std::cout << "Is element " << i << " less than element " << i + 1 << "? "
+                    << (numericVector[i]->lessThanOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
+            std::cout << "Is element " << i << " greater than element " << i + 1 << "? "
+                    << (numericVector[i]->greaterThanOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
+            std::cout << "Is element " << i << " equal to element " << i + 1 << "? "
+                    << (numericVector[i]->equalOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
         }
 
-        // Comparison
-        std::cout << "Is num5 less than num6? " << (num5->lessThanOperation(*num6) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num5 greater than num6? " << (num5->greaterThanOperation(*num6) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num5 equal to num6? " << (num5->equalOperation(*num6) ? "Yes" : "No") << std::endl;
+        // Sorting the vector based on lessThanOperation
+        std::sort(numericVector.begin(), numericVector.end(),
+                [](const std::unique_ptr<Numeric>& a, const std::unique_ptr<Numeric>& b) {
+                    return a->lessThanOperation(*b);
+                });
 
-        // Test ComplexNumeric
-        auto num7 = Numeric::create(std::complex<float>(3.0f, 4.0f)); // ComplexNumeric<float>
-        auto num8 = Numeric::create(std::complex<float>(5.0f, 6.0f)); // ComplexNumeric<float>
-        auto numComplexZero = Numeric::create(std::complex<float>(0.0f, 0.0f)); // ComplexNumeric<float>
-
-        // Sum
-        std::cout << "Sum (Complex): " << num7->sumOperation(*num8)->toString() << std::endl;
-
-        // Subtraction
-        std::cout << "Subtraction (Complex): " << num7->subtractOperation(*num8)->toString() << std::endl;
-
-        // Multiplication
-        std::cout << "Multiplication (Complex): " << num7->multiplyOperation(*num8)->toString() << std::endl;
-
-        // Division
-        std::cout << "Division (Complex): " << num7->divideOperation(*num8)->toString() << std::endl;
-
-        // Division by zero (should throw an exception)
-        try {
-            std::cout << "Division by zero (Complex): " << num7->divideOperation(*numComplexZero)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Division by zero exception (Complex): " << e.what() << std::endl;
+        std::cout << "Sorted Vector Contents:" << std::endl;
+        for (const auto& num : numericVector) {
+            std::cout << num->toString() << std::endl;
         }
-
-        // Comparison
-        std::cout << "Is num7 less than num8? " << (num7->lessThanOperation(*num8) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num7 greater than num8? " << (num7->greaterThanOperation(*num8) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num7 equal to num8? " << (num7->equalOperation(*num8) ? "Yes" : "No") << std::endl;
-
-        // Test charNumeric
-        auto num9 = Numeric::create('a'); // charNumeric<char>
-        auto num10 = Numeric::create('b'); // charNumeric<char>
-
-        // Sum
-        std::cout << "Sum (Char): " << num9->sumOperation(*num10)->toString() << std::endl;
-
-        // Subtraction
-        std::cout << "Subtraction (Char): " << num9->subtractOperation(*num10)->toString() << std::endl;
-
-        // Multiplication (should throw an exception)
-        try {
-            std::cout << "Multiplication (Char): " << num9->multiplyOperation(*num10)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Multiplication exception (Char): " << e.what() << std::endl;
-        }
-
-        // Division (should throw an exception)
-        try {
-            std::cout << "Division (Char): " << num9->divideOperation(*num10)->toString() << std::endl;
-        } catch (const std::exception& e) {
-            std::cout << "Division exception (Char): " << e.what() << std::endl;
-        }
-
-        // Comparison
-        std::cout << "Is num9 less than num10? " << (num9->lessThanOperation(*num10) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num9 greater than num10? " << (num9->greaterThanOperation(*num10) ? "Yes" : "No") << std::endl;
-        std::cout << "Is num9 equal to num10? " << (num9->equalOperation(*num10) ? "Yes" : "No") << std::endl;
-
-        // Test unsupported type (should throw an exception)
-        try {
-            auto numUnsupported = Numeric::create("UnsupportedType"); // Unsupported type
-        } catch (const std::exception& e) {
-            std::cout << "Unsupported type exception: " << e.what() << std::endl;
-        }
-
     } catch (const std::exception& e) {
         std::cout << "Exception: " << e.what() << std::endl;
     }
-
     return 0;
 }
