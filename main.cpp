@@ -5,8 +5,9 @@
 #include <concepts>
 #include <type_traits>  // For std::is_floating_point
 #include <complex>
-
 #include <algorithm>
+#include <stdexcept>
+
 
 #define DEBUG 0
 #define RUN 1
@@ -57,9 +58,9 @@ When there’s a possibility that the object is not the expected type.*/
  //firstly a derived class with polymorphism
 class IntNumeric : public Numeric
 {
-    private:
-        int intValue;
     public:
+        int intValue;
+
     IntNumeric(int value) : intValue(value)
     {
         #if DEBUG == 1
@@ -71,28 +72,81 @@ class IntNumeric : public Numeric
     
     std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override
     {
-        const IntNumeric& secondInt= dynamic_cast<const IntNumeric&>(second);
-        return std::make_unique<IntNumeric>(intValue + secondInt.intValue);
+        try
+        {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+            return std::make_unique<IntNumeric>(intValue + secondInt.intValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            std::cerr << "Type mismatch: " << e.what() << std::endl;
+            return nullptr; // Or handle differently
+        }
+        catch (const std::bad_alloc& e)
+        {
+            std::cerr << "Memory allocation failed: " << e.what() << std::endl;
+            return nullptr; // Handle memory failure
+        }
         
     }
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second ) override
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
     {
-        const IntNumeric& secondInt= dynamic_cast<const IntNumeric&>(second);
-        return std::make_unique<IntNumeric>(intValue - secondInt.intValue);
-    }
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second ) override
-    {
-        const IntNumeric& secondInt= dynamic_cast<const IntNumeric&>(second);
-        return std::make_unique<IntNumeric>(intValue * secondInt.intValue);
-    }
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second ) override
-    {
-        const IntNumeric& secondInt= dynamic_cast<const IntNumeric&>(second);
-        if(secondInt.intValue == 0)
+        try
         {
-            throw std::runtime_error("Division by zero is not allowed.");
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+            return std::make_unique<IntNumeric>(intValue - secondInt.intValue);
         }
-        return std::make_unique<IntNumeric>(intValue / secondInt.intValue);
+        catch (const std::bad_cast& e)
+        {
+            std::cerr << "Type mismatch: " << e.what() << std::endl;
+            return nullptr;
+        }
+        catch (const std::bad_alloc& e)
+        {
+            std::cerr << "Memory allocation failed: " << e.what() << std::endl;
+            return nullptr;
+        }
+    }
+    
+
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
+    {
+        try
+        {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+            return std::make_unique<IntNumeric>(intValue * secondInt.intValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("multiplyOperation: Type mismatch, expected IntNumeric.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("multiplyOperation: Memory allocation failed.");
+        }
+    }
+    
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
+    {
+        try
+        {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+    
+            if (secondInt.intValue == 0)
+            {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+    
+            return std::make_unique<IntNumeric>(intValue / secondInt.intValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("divideOperation: Type mismatch, expected IntNumeric.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("divideOperation: Memory allocation failed.");
+        }
     }
     bool lessThanOperation(const Numeric& second ) override
     {
@@ -132,10 +186,9 @@ concept FloatingPoint = std::is_floating_point_v<T>;
 template <FloatingPoint T>
 class FloatNumeric : public Numeric
 {
-    private:
-    T floatValue;
     public:
-    
+        T floatValue;
+
     FloatNumeric(T float_val): floatValue(float_val)
     {
         #if DEBUG == 1
@@ -143,31 +196,80 @@ class FloatNumeric : public Numeric
         #endif // DEBUG
     }
 
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override
     {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return std::make_unique<FloatNumeric<T>>(floatValue + secondFloat.floatValue);
-        
-    }
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
-    }
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
-    }
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        if(secondFloat.floatValue == 0)
+        try
         {
-            throw std::runtime_error("Division by zero is not allowed.");
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return std::make_unique<FloatNumeric<T>>(floatValue + secondFloat.floatValue);
         }
-        return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("sumOperation: Type mismatch, expected FloatNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("sumOperation: Memory allocation failed.");
+        }
     }
+
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
+    {
+        try
+        {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("subtractOperation: Type mismatch, expected FloatNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("subtractOperation: Memory allocation failed.");
+        }
+    }
+
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
+    {
+        try
+        {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("multiplyOperation: Type mismatch, expected FloatNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("multiplyOperation: Memory allocation failed.");
+        }
+    }
+
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
+    {
+        try
+        {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+
+            if (secondFloat.floatValue == 0)
+            {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+
+            return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("divideOperation: Type mismatch, expected FloatNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("divideOperation: Memory allocation failed.");
+        }
+    }
+
 
     bool lessThanOperation(const Numeric& second ) override
     {
@@ -204,10 +306,10 @@ class FloatNumeric : public Numeric
 template <typename T>
 class ComplexNumeric : public Numeric
 {
-    private:
-    std::complex<T> complexNum;
 
     public:
+    std::complex<T> complexNum;
+
     ComplexNumeric(std::complex<T> num)
     : complexNum(num) 
     {
@@ -216,39 +318,84 @@ class ComplexNumeric : public Numeric
         #endif // DEBUG
     }
 
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second)override
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override
     {
-        const ComplexNumeric<T>& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-
-        std::complex<T> result(complexNum + complexValue.complexNum);
-        return std::make_unique<ComplexNumeric<T>>(result);
+        try
+        {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            std::complex<T> result = complexNum + complexValue.complexNum;
+            return std::make_unique<ComplexNumeric<T>>(result);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("sumOperation: Type mismatch, expected ComplexNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("sumOperation: Memory allocation failed.");
+        }
     }
     
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second)
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
     {
-        const ComplexNumeric<T>& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-        
-        std::complex<T> result (complexNum - complexValue.complexNum);
-        return std::make_unique<ComplexNumeric<T>>(result);
+        try
+        {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            std::complex<T> result = complexNum - complexValue.complexNum;
+            return std::make_unique<ComplexNumeric<T>>(result);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("subtractOperation: Type mismatch, expected ComplexNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("subtractOperation: Memory allocation failed.");
+        }
     }
-
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second)override
+    
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
     {
-        const ComplexNumeric<T>& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-
-        std::complex<T> result(complexNum * complexValue.complexNum);
-        return std::make_unique<ComplexNumeric<T>>(result);
+        try
+        {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            std::complex<T> result = complexNum * complexValue.complexNum;
+            return std::make_unique<ComplexNumeric<T>>(result);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("multiplyOperation: Type mismatch, expected ComplexNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("multiplyOperation: Memory allocation failed.");
+        }
     }
-
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second)override
+    
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
     {
-        const ComplexNumeric<T>& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-
-        std::complex<T> result(complexNum / complexValue.complexNum);
-
-        return std::make_unique<ComplexNumeric<T>>(result);
+        try
+        {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+    
+            if (std::abs(complexValue.complexNum) == 0)
+            {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+    
+            std::complex<T> result = complexNum / complexValue.complexNum;
+            return std::make_unique<ComplexNumeric<T>>(result);
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("divideOperation: Type mismatch, expected ComplexNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("divideOperation: Memory allocation failed.");
+        }
     }
-
+    
     /*I will compare using Lexicographical comparison*/
 
     /*I could use std::lexicographical_compare as it is generally used for
@@ -300,10 +447,9 @@ concept charTemp = std::is_same_v<T, char> || std::is_same_v<T, wchar_t> || std:
 template <charTemp T>
 class charNumeric : public Numeric
 {
-    private:
-    T charValue;
     public:
-    
+    T charValue;
+
     charNumeric(T char_val): charValue(char_val)
     {
         #if DEBUG == 1
@@ -311,27 +457,50 @@ class charNumeric : public Numeric
         #endif // DEBUG
     }
     
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override
     {
-        const charNumeric<T>& secondChar= dynamic_cast<charNumeric<T>&>(second);
-        return toascii(std::make_unique<charNumeric<T>>(charValue + secondChar.charValue));
+        try
+        {
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
+            return std::make_unique<charNumeric<T>>(toascii(charValue + secondChar.charValue));
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("sumOperation: Type mismatch, expected charNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("sumOperation: Memory allocation failed.");
+        }
     }
 
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second ) override
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
     {
-        const charNumeric<T>& secondChar= dynamic_cast<charNumeric<T>&>(second);
-        return toascii(std::make_unique<charNumeric<T>>(charValue - secondChar.charValue));
+        try
+        {
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
+            return std::make_unique<charNumeric<T>>(toascii(charValue - secondChar.charValue));
+        }
+        catch (const std::bad_cast& e)
+        {
+            throw std::runtime_error("subtractOperation: Type mismatch, expected charNumeric<T>.");
+        }
+        catch (const std::bad_alloc& e)
+        {
+            throw std::runtime_error("subtractOperation: Memory allocation failed.");
+        }
     }
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second ) override
+
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
     {
-        throw std::runtime_error(" multiply operation is not supported for characters");
-        return nullptr;
-    } 
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second ) override
+        throw std::runtime_error("multiplyOperation: Operation not supported for characters.");
+    }
+
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
     {
-        throw std::runtime_error(" multiply operation is not supported for characters");
-        return nullptr;
-    } 
+        throw std::runtime_error("divideOperation: Operation not supported for characters.");
+    }
+
     
     bool lessThanOperation(const Numeric& second ) override
     {
@@ -376,71 +545,120 @@ std::unique_ptr<Numeric> Numeric::create(T value) {
     }
 }
 
+
 int main() {
     try {
-        // Create a vector to store Numeric objects
-        std::vector<std::unique_ptr<Numeric>> numericVector;
+        // Separate vectors for each numeric type
+        std::vector<std::unique_ptr<Numeric>> intNumbers;
+        std::vector<std::unique_ptr<Numeric>> floatNumbers;
+        std::vector<std::unique_ptr<Numeric>> doubleNumbers;
+        std::vector<std::unique_ptr<Numeric>> complexNumbers;
+        std::vector<std::unique_ptr<Numeric>> charNumbers;
 
-        // Add different numeric types to the vector
-        numericVector.push_back(Numeric::create(5));                     // IntNumeric
-        numericVector.push_back(Numeric::create(10));                    // IntNumeric
-        numericVector.push_back(Numeric::create(0));                     // IntNumeric
-        numericVector.push_back(Numeric::create(-5));                    // IntNumeric
-        numericVector.push_back(Numeric::create(5.5f));                  // FloatNumeric<float>
-        numericVector.push_back(Numeric::create(10.5f));                 // FloatNumeric<float>
-        numericVector.push_back(Numeric::create(0.0f));                  // FloatNumeric<float>
-        numericVector.push_back(Numeric::create(-5.5f));                 // FloatNumeric<float>
-        numericVector.push_back(Numeric::create(5.5));                   // FloatNumeric<double>
-        numericVector.push_back(Numeric::create(10.5));                  // FloatNumeric<double>
-        numericVector.push_back(Numeric::create(0.0));                   // FloatNumeric<double>
-        numericVector.push_back(Numeric::create(-5.5));                  // FloatNumeric<double>
-        numericVector.push_back(Numeric::create(std::complex<float>(3.0f, 4.0f))); // ComplexNumeric<float>
-        numericVector.push_back(Numeric::create(std::complex<float>(5.0f, 6.0f))); // ComplexNumeric<float>
-        numericVector.push_back(Numeric::create(std::complex<float>(0.0f, 0.0f))); // ComplexNumeric<float>
-        numericVector.push_back(Numeric::create('a'));                   // CharNumeric<char>
+        // Populate intNumbers vector
+        intNumbers.push_back(Numeric::create(5));
+        intNumbers.push_back(Numeric::create(10));
+        intNumbers.push_back(Numeric::create(2));
+        intNumbers.push_back(Numeric::create(-7)); // Edge case
 
-        // Perform operations on the vector elements
-        std::cout << "Vector Contents:" << std::endl;
-        for (const auto& num : numericVector) {
-            std::cout << num->toString() << std::endl;
-        }
+        // Populate floatNumbers vector
+        floatNumbers.push_back(Numeric::create(3.14f));
+        floatNumbers.push_back(Numeric::create(2.71f));
+        floatNumbers.push_back(Numeric::create(1.41f));
+        floatNumbers.push_back(Numeric::create(-0.99f)); // Edge case
 
-        // Perform arithmetic operations on selected elements
-        std::cout << "Arithmetic Operations:" << std::endl;
-        for (size_t i = 0; i < numericVector.size() - 1; ++i) {
-            std::cout << "Sum: " << numericVector[i]->sumOperation(*numericVector[i + 1])->toString() << std::endl;
-            std::cout << "Subtraction: " << numericVector[i]->subtractOperation(*numericVector[i + 1])->toString() << std::endl;
-            std::cout << "Multiplication: " << numericVector[i]->multiplyOperation(*numericVector[i + 1])->toString() << std::endl;
-            try {
-                std::cout << "Division: " << numericVector[i]->divideOperation(*numericVector[i + 1])->toString() << std::endl;
-            } catch (const std::exception& e) {
-                std::cout << "Division exception: " << e.what() << std::endl;
+        // Populate doubleNumbers vector
+        doubleNumbers.push_back(Numeric::create(9.81));
+        doubleNumbers.push_back(Numeric::create(1.618));
+        doubleNumbers.push_back(Numeric::create(2.9979));
+        doubleNumbers.push_back(Numeric::create(-3.5)); // Edge case
+
+        // Populate complexNumbers vector
+        complexNumbers.push_back(Numeric::create(std::complex<double>(1, 2)));
+        complexNumbers.push_back(Numeric::create(std::complex<double>(3, 4)));
+        complexNumbers.push_back(Numeric::create(std::complex<double>(0, -1)));
+        complexNumbers.push_back(Numeric::create(std::complex<double>(-2, -3))); // Edge case
+
+        // Populate charNumbers vector
+        charNumbers.push_back(Numeric::create('A'));
+        charNumbers.push_back(Numeric::create('C'));
+        charNumbers.push_back(Numeric::create('B'));
+        charNumbers.push_back(Numeric::create('Z')); // Edge case
+
+        // Function to perform addition and sorting
+        auto processNumbers = [](auto &numbers, const std::string &type) {
+            std::cout << "\n" << type << " Addition Results:\n";
+            for (size_t i = 0; i < numbers.size() - 1; ++i) {
+                try {
+                    std::unique_ptr<Numeric> result = numbers[i]->sumOperation(*numbers[i + 1]);
+                    std::cout << numbers[i]->toString() << " + " << numbers[i + 1]->toString()
+                            << " = " << result->toString() << std::endl;
+                } catch (const std::exception &e) {
+                    std::cerr << "Exception caught during addition: " << e.what() << std::endl;
+                }
             }
+            std::sort(numbers.begin(), numbers.end(), [](const auto &a, const auto &b) {
+                return a->lessThanOperation(*b);
+            });
+            std::cout << "\nSorted " << type << " Values:\n";
+            for (const auto &num : numbers) {
+                std::cout << num->toString() << " ";
+            }
+            std::cout << "\n";
+        };
+
+        // Process each type
+        processNumbers(intNumbers, "Integer");
+        processNumbers(floatNumbers, "Float");
+        processNumbers(doubleNumbers, "Double");
+        processNumbers(complexNumbers, "Complex");
+        processNumbers(charNumbers, "Char");
+
+        // **Exception Cases**
+        try {
+            // **Char Overflow Case**
+            charNumbers.push_back(Numeric::create(CHAR_MAX));
+            charNumbers.push_back(Numeric::create(CHAR_MAX));
+
+            // Check for overflow before performing addition
+            int sumCheck = static_cast<int>(CHAR_MAX) + static_cast<int>(CHAR_MAX);
+            if (sumCheck > std::numeric_limits<unsigned char>::max()) {
+                throw std::overflow_error("Char addition overflow detected.");
+            }
+
+            auto charOverflow = charNumbers[0]->sumOperation(*charNumbers[1]); 
+            if (charOverflow) {
+                std::cout << "Unexpected char addition result: " << charOverflow->toString() << std::endl;
+            }
+        } catch (const std::overflow_error &e) {
+            std::cerr << "Exception caught: Char addition overflow -> " << e.what() << std::endl;
+        } catch (const std::exception &e) {
+            std::cerr << "Exception caught: General char addition error -> " << e.what() << std::endl;
         }
 
-        // Perform comparison operations
-        std::cout << "Comparison Operations:" << std::endl;
-        for (size_t i = 0; i < numericVector.size() - 1; ++i) {
-            std::cout << "Is element " << i << " less than element " << i + 1 << "? "
-                    << (numericVector[i]->lessThanOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
-            std::cout << "Is element " << i << " greater than element " << i + 1 << "? "
-                    << (numericVector[i]->greaterThanOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
-            std::cout << "Is element " << i << " equal to element " << i + 1 << "? "
-                    << (numericVector[i]->equalOperation(*numericVector[i + 1]) ? "Yes" : "No") << std::endl;
+        try {
+            // **Division by Zero Case**
+            std::unique_ptr<Numeric> zero = Numeric::create(0);
+            std::unique_ptr<Numeric> number = Numeric::create(10);
+            auto result = number->divideOperation(*zero);
+            std::cout << "Division result: " << result->toString() << std::endl;
+        } catch (const std::runtime_error &e) {
+            std::cerr << "Exception caught: Division by zero -> " << e.what() << std::endl;
         }
 
-        // Sorting the vector based on lessThanOperation
-        std::sort(numericVector.begin(), numericVector.end(),
-                [](const std::unique_ptr<Numeric>& a, const std::unique_ptr<Numeric>& b) {
-                    return a->lessThanOperation(*b);
-                });
-
-        std::cout << "Sorted Vector Contents:" << std::endl;
-        for (const auto& num : numericVector) {
-            std::cout << num->toString() << std::endl;
+        try {
+            // **Type Mismatch Case**
+            auto typeMismatchResult = intNumbers[0]->sumOperation(*complexNumbers[0]); 
+            std::cout << "Unexpected operation result: " << typeMismatchResult->toString() << std::endl;
+        } catch (const std::bad_cast &e) {
+            std::cerr << "Exception caught: Type mismatch -> " << e.what() << std::endl;
         }
-    } catch (const std::exception& e) {
-        std::cout << "Exception: " << e.what() << std::endl;
+
+    } catch (const std::exception &e) {
+        std::cerr << "Exception: " << e.what() << std::endl;
+    } catch (...) {
+        std::cerr << "An unknown error occurred." << std::endl;
     }
+
     return 0;
 }
