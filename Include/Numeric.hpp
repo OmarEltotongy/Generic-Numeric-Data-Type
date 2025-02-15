@@ -20,7 +20,6 @@ class IntNumeric;
 
 template <class T>
 concept FloatingPoint = std::is_floating_point_v<T>;
-
 template <FloatingPoint T>
 class FloatNumeric;
 
@@ -29,7 +28,6 @@ class ComplexNumeric;
 
 template <class T>
 concept charTemp = std::is_same_v<T, char> || std::is_same_v<T, wchar_t> || std::is_same_v<T, char16_t> || std::is_same_v<T, char32_t>;
-
 template <charTemp T>
 class charNumeric;
 
