@@ -86,57 +86,111 @@ IntNumeric::IntNumeric(int value) : intValue(value)
             throw std::runtime_error("sumOperation: Memory allocation failed.");
         }
     }
-std::unique_ptr<Numeric> IntNumeric::subtractOperation(const Numeric& second) {
-    try {
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
-        return std::make_unique<IntNumeric>(intValue - secondInt.intValue);
-    } catch (const std::bad_cast&) {
-        // If the types don't match, convert the second operand to IntNumeric
-        auto converted = second.convertTo(typeid(IntNumeric));
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(*converted);
-        return std::make_unique<IntNumeric>(intValue - secondInt.intValue);
-    } catch (const std::bad_alloc& e) {
-        throw std::runtime_error("subtractOperation: Memory allocation failed.");
-    }
-}
-
-std::unique_ptr<Numeric> IntNumeric::multiplyOperation(const Numeric& second) {
-    try {
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
-        return std::make_unique<IntNumeric>(intValue * secondInt.intValue);
-    } catch (const std::bad_cast&) {
-        // If the types don't match, convert the second operand to IntNumeric
-        auto converted = second.convertTo(typeid(IntNumeric));
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(*converted);
-        return std::make_unique<IntNumeric>(intValue * secondInt.intValue);
-    } catch (const std::bad_alloc& e) {
-        throw std::runtime_error("multiplyOperation: Memory allocation failed.");
-    }
-}
-
-std::unique_ptr<Numeric> IntNumeric::divideOperation(const Numeric& second) {
-    try {
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
-
-        if (secondInt.intValue == 0) {
-            throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+    std::unique_ptr<Numeric> IntNumeric::subtractOperation(const Numeric& second) {
+        try {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+            return std::make_unique<IntNumeric>(intValue - secondInt.intValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the current object to the type of the second operand
+            if (typeid(second) == typeid(FloatNumeric<float>)) {
+                const FloatNumeric<float>& secondFloat = dynamic_cast<const FloatNumeric<float>&>(second);
+                return std::make_unique<FloatNumeric<float>>(static_cast<float>(intValue) - secondFloat.floatValue);
+            } else if (typeid(second) == typeid(FloatNumeric<double>)) {
+                const FloatNumeric<double>& secondDouble = dynamic_cast<const FloatNumeric<double>&>(second);
+                return std::make_unique<FloatNumeric<double>>(static_cast<double>(intValue) - secondDouble.floatValue);
+            } else if (typeid(second) == typeid(ComplexNumeric<float>)) {
+                const ComplexNumeric<float>& secondComplex = dynamic_cast<const ComplexNumeric<float>&>(second);
+                return std::make_unique<ComplexNumeric<float>>(std::complex<float>(intValue, 0) - secondComplex.complexNum);
+            } else if (typeid(second) == typeid(ComplexNumeric<double>)) {
+                const ComplexNumeric<double>& secondComplex = dynamic_cast<const ComplexNumeric<double>&>(second);
+                return std::make_unique<ComplexNumeric<double>>(std::complex<double>(intValue, 0) - secondComplex.complexNum);
+            } else {
+                // If the type is not supported, throw an exception
+                throw std::runtime_error("Unsupported type for subtraction.");
+            }
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
-
-        return std::make_unique<IntNumeric>(intValue / secondInt.intValue);
-    } catch (const std::bad_cast&) {
-        // If the types don't match, convert the second operand to IntNumeric
-        auto converted = second.convertTo(typeid(IntNumeric));
-        const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(*converted);
-
-        if (secondInt.intValue == 0) {
-            throw std::runtime_error("divideOperation: Division by zero is not allowed.");
-        }
-
-        return std::make_unique<IntNumeric>(intValue / secondInt.intValue);
-    } catch (const std::bad_alloc& e) {
-        throw std::runtime_error("divideOperation: Memory allocation failed.");
     }
-}
+    
+    std::unique_ptr<Numeric> IntNumeric::multiplyOperation(const Numeric& second) {
+        try {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+            return std::make_unique<IntNumeric>(intValue * secondInt.intValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the current object to the type of the second operand
+            if (typeid(second) == typeid(FloatNumeric<float>)) {
+                const FloatNumeric<float>& secondFloat = dynamic_cast<const FloatNumeric<float>&>(second);
+                return std::make_unique<FloatNumeric<float>>(static_cast<float>(intValue) * secondFloat.floatValue);
+            } else if (typeid(second) == typeid(FloatNumeric<double>)) {
+                const FloatNumeric<double>& secondDouble = dynamic_cast<const FloatNumeric<double>&>(second);
+                return std::make_unique<FloatNumeric<double>>(static_cast<double>(intValue) * secondDouble.floatValue);
+            } else if (typeid(second) == typeid(ComplexNumeric<float>)) {
+                const ComplexNumeric<float>& secondComplex = dynamic_cast<const ComplexNumeric<float>&>(second);
+                return std::make_unique<ComplexNumeric<float>>(std::complex<float>(intValue, 0) * secondComplex.complexNum);
+            } else if (typeid(second) == typeid(ComplexNumeric<double>)) {
+                const ComplexNumeric<double>& secondComplex = dynamic_cast<const ComplexNumeric<double>&>(second);
+                return std::make_unique<ComplexNumeric<double>>(std::complex<double>(intValue, 0) * secondComplex.complexNum);
+            } else {
+                // If the type is not supported, throw an exception
+                throw std::runtime_error("Unsupported type for multiplication.");
+            }
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("multiplyOperation: Memory allocation failed.");
+        }
+    }
+    
+    std::unique_ptr<Numeric> IntNumeric::divideOperation(const Numeric& second) {
+        try {
+            const IntNumeric& secondInt = dynamic_cast<const IntNumeric&>(second);
+    
+            if (secondInt.intValue == 0) {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+    
+            return std::make_unique<IntNumeric>(intValue / secondInt.intValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the current object to the type of the second operand
+            if (typeid(second) == typeid(FloatNumeric<float>)) {
+                const FloatNumeric<float>& secondFloat = dynamic_cast<const FloatNumeric<float>&>(second);
+    
+                if (secondFloat.floatValue == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+    
+                return std::make_unique<FloatNumeric<float>>(static_cast<float>(intValue) / secondFloat.floatValue);
+            } else if (typeid(second) == typeid(FloatNumeric<double>)) {
+                const FloatNumeric<double>& secondDouble = dynamic_cast<const FloatNumeric<double>&>(second);
+    
+                if (secondDouble.floatValue == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+    
+                return std::make_unique<FloatNumeric<double>>(static_cast<double>(intValue) / secondDouble.floatValue);
+            } else if (typeid(second) == typeid(ComplexNumeric<float>)) {
+                const ComplexNumeric<float>& secondComplex = dynamic_cast<const ComplexNumeric<float>&>(second);
+    
+                if (std::abs(secondComplex.complexNum) == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+    
+                return std::make_unique<ComplexNumeric<float>>(std::complex<float>(intValue, 0) / secondComplex.complexNum);
+            } else if (typeid(second) == typeid(ComplexNumeric<double>)) {
+                const ComplexNumeric<double>& secondComplex = dynamic_cast<const ComplexNumeric<double>&>(second);
+    
+                if (std::abs(secondComplex.complexNum) == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+    
+                return std::make_unique<ComplexNumeric<double>>(std::complex<double>(intValue, 0) / secondComplex.complexNum);
+            } else {
+                // If the type is not supported, throw an exception
+                throw std::runtime_error("Unsupported type for division.");
+            }
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("divideOperation: Memory allocation failed.");
+        }
+    }
 
 bool IntNumeric::lessThanOperation(const Numeric& second) {
     try {
