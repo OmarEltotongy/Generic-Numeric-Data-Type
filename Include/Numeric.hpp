@@ -151,53 +151,76 @@ class FloatNumeric : public Numeric
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
             return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
         } catch (const std::bad_cast&) {
-            // If the types don't match, convert the second operand to FloatNumeric<T>
-            auto converted = second.convertTo(typeid(FloatNumeric<T>));
-            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
-            return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
+            // If the types don't match, check if the second operand is a complex number
+            if (typeid(second) == typeid(ComplexNumeric<T>)) {
+                const ComplexNumeric<T>& secondComplex = dynamic_cast<const ComplexNumeric<T>&>(second);
+                return std::make_unique<ComplexNumeric<T>>(std::complex<T>(floatValue, 0) - secondComplex.complexNum);
+            } else {
+                // Convert the second operand to FloatNumeric<T> and perform the operation
+                auto converted = second.convertTo(typeid(*this));
+                const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+                return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
+            }
         } catch (const std::bad_alloc& e) {
             throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
     }
-    
+
     std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) {
         try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
             return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
         } catch (const std::bad_cast&) {
-            // If the types don't match, convert the second operand to FloatNumeric<T>
-            auto converted = second.convertTo(typeid(FloatNumeric<T>));
-            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
-            return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
+            // If the types don't match, check if the second operand is a complex number
+            if (typeid(second) == typeid(ComplexNumeric<T>)) {
+                const ComplexNumeric<T>& secondComplex = dynamic_cast<const ComplexNumeric<T>&>(second);
+                return std::make_unique<ComplexNumeric<T>>(std::complex<T>(floatValue, 0) * secondComplex.complexNum);
+            } else {
+                // Convert the second operand to FloatNumeric<T> and perform the operation
+                auto converted = second.convertTo(typeid(*this));
+                const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+                return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
+            }
         } catch (const std::bad_alloc& e) {
             throw std::runtime_error("multiplyOperation: Memory allocation failed.");
         }
     }
-    
+
     std::unique_ptr<Numeric> divideOperation(const Numeric& second) {
         try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
-    
+
             if (secondFloat.floatValue == 0) {
                 throw std::runtime_error("divideOperation: Division by zero is not allowed.");
             }
-    
+
             return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
         } catch (const std::bad_cast&) {
-            // If the types don't match, convert the second operand to FloatNumeric<T>
-            auto converted = second.convertTo(typeid(FloatNumeric<T>));
-            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
-    
-            if (secondFloat.floatValue == 0) {
-                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            // If the types don't match, check if the second operand is a complex number
+            if (typeid(second) == typeid(ComplexNumeric<T>)) {
+                const ComplexNumeric<T>& secondComplex = dynamic_cast<const ComplexNumeric<T>&>(second);
+
+                if (std::abs(secondComplex.complexNum) == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+
+                return std::make_unique<ComplexNumeric<T>>(std::complex<T>(floatValue, 0) / secondComplex.complexNum);
+            } else {
+                // Convert the second operand to FloatNumeric<T> and perform the operation
+                auto converted = second.convertTo(typeid(*this));
+                const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+
+                if (secondFloat.floatValue == 0) {
+                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+                }
+
+                return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
             }
-    
-            return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
         } catch (const std::bad_alloc& e) {
             throw std::runtime_error("divideOperation: Memory allocation failed.");
         }
     }
-    
+        
     bool lessThanOperation(const Numeric& second) {
         try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
@@ -449,7 +472,6 @@ public:
             throw std::runtime_error("sumOperation: Memory allocation failed.");
         }
     }
-
     std::unique_ptr<Numeric> subtractOperation(const Numeric& second) {
         try {
             const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
@@ -463,11 +485,11 @@ public:
             throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
     }
-
+    
     std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) {
         throw std::runtime_error("multiplyOperation: Operation not supported for characters.");
     }
-
+    
     std::unique_ptr<Numeric> divideOperation(const Numeric& second) {
         throw std::runtime_error("divideOperation: Operation not supported for characters.");
     }
