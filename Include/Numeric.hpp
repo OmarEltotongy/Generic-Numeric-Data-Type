@@ -60,6 +60,8 @@ class Numeric
         }
     }
 
+    // Convert the current Numeric object to a specific type
+    virtual std::unique_ptr<Numeric> convertTo(const std::type_info& targetType) const = 0;
     virtual std::unique_ptr<Numeric> sumOperation(const Numeric& second ) = 0;
     virtual std::unique_ptr<Numeric> subtractOperation( const Numeric& second ) = 0;
     virtual std::unique_ptr<Numeric> multiplyOperation(const Numeric& second ) = 0;
@@ -80,6 +82,7 @@ class IntNumeric : public Numeric
 
     IntNumeric(int value);
     
+    std::unique_ptr<Numeric> convertTo(const std::type_info& targetType) const override;
     std::unique_ptr<Numeric> sumOperation(const Numeric& second ) override;
     std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override;
     std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override;    
@@ -109,100 +112,131 @@ class FloatNumeric : public Numeric
         #endif // DEBUG
     }
 
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override 
-    {
-        try
-        {
+    std::unique_ptr<Numeric> convertTo(const std::type_info& targetType) const {
+        if (targetType == typeid(FloatNumeric<float>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<float>>(static_cast<float>(floatValue)));
+        } else if (targetType == typeid(FloatNumeric<double>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<double>>(static_cast<double>(floatValue)));
+        } else if (targetType == typeid(ComplexNumeric<float>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<float>>(std::complex<float>(floatValue, 0)));
+        } else if (targetType == typeid(ComplexNumeric<double>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<double>>(std::complex<double>(floatValue, 0)));
+        } else if (targetType == typeid(IntNumeric)) {
+            return std::unique_ptr<Numeric>(std::make_unique<IntNumeric>(static_cast<int>(floatValue)));
+        } else {
+            throw std::runtime_error("Unsupported conversion");
+        }
+    }
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override {
+        try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
             return std::make_unique<FloatNumeric<T>>(floatValue + secondFloat.floatValue);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("sumOperation: Type mismatch, expected FloatNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+        } catch (const std::bad_cast&) {
+            // If the types don't match, check if the second operand is a complex number
+            if (typeid(second) == typeid(ComplexNumeric<T>)) {
+                const ComplexNumeric<T>& secondComplex = dynamic_cast<const ComplexNumeric<T>&>(second);
+                return std::make_unique<ComplexNumeric<T>>(std::complex<T>(floatValue + secondComplex.complexNum.real(), secondComplex.complexNum.imag()));
+            } else {
+                // Convert the second operand to the current type and perform the operation
+                auto converted = second.convertTo(typeid(*this));
+                const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+                return std::make_unique<FloatNumeric<T>>(floatValue + secondFloat.floatValue);
+            }
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("sumOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
-    {
-        try
-        {
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) {
+        try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
             return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("subtractOperation: Type mismatch, expected FloatNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+            return std::make_unique<FloatNumeric<T>>(floatValue - secondFloat.floatValue);
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
-    {
-            
-        try
-        {
+    
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) {
+        try {
             const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
             return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("multiplyOperation: Type mismatch, expected FloatNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+            return std::make_unique<FloatNumeric<T>>(floatValue * secondFloat.floatValue);
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("multiplyOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
-    {
-        try
-            {
-                const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
-
-                if (secondFloat.floatValue == 0)
-                {
-                    throw std::runtime_error("divideOperation: Division by zero is not allowed.");
-                }
-
-                return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
-            }
-            catch (const std::bad_cast& e)
-            {
-                throw std::runtime_error("divideOperation: Type mismatch, expected FloatNumeric<T>.");
-            }
-            catch (const std::bad_alloc& e)
-            {
-                throw std::runtime_error("divideOperation: Memory allocation failed.");
-            }
-    }
-    bool lessThanOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return (floatValue < secondFloat.floatValue );
     
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) {
+        try {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+    
+            if (secondFloat.floatValue == 0) {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+    
+            return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+    
+            if (secondFloat.floatValue == 0) {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+    
+            return std::make_unique<FloatNumeric<T>>(floatValue / secondFloat.floatValue);
+        } catch (const std::bad_alloc& e) {
+            throw std::runtime_error("divideOperation: Memory allocation failed.");
+        }
     }
-    bool greaterThanOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return (floatValue >  secondFloat.floatValue);
-
+    
+    bool lessThanOperation(const Numeric& second) {
+        try {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return (floatValue < secondFloat.floatValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+            return (floatValue < secondFloat.floatValue);
+        }
     }
-    bool equalOperation(const Numeric& second ) override
-    {
-        const FloatNumeric<T>& secondFloat= dynamic_cast<const FloatNumeric<T>&>(second);
-        return (floatValue ==  secondFloat.floatValue);
-
+    
+    bool greaterThanOperation(const Numeric& second) {
+        try {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return (floatValue > secondFloat.floatValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+            return (floatValue > secondFloat.floatValue);
+        }
     }
-    std::string toString() const override
-    {
-        return std::to_string(floatValue); // from std library 
+    
+    bool equalOperation(const Numeric& second) {
+        try {
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(second);
+            return (floatValue == secondFloat.floatValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to FloatNumeric<T>
+            auto converted = second.convertTo(typeid(FloatNumeric<T>));
+            const FloatNumeric<T>& secondFloat = dynamic_cast<const FloatNumeric<T>&>(*converted);
+            return (floatValue == secondFloat.floatValue);
+        }
     }
-
+    
+    std::string toString() const {
+        return std::to_string(floatValue); // from std library
+    }
     ~FloatNumeric()
     {
         #if DEBUG == 1
@@ -226,113 +260,148 @@ class ComplexNumeric : public Numeric
         std::cout<<"ComplexNumeric Constructor is calledwith value: " << complexNum << std::endl;
         #endif // DEBUG
     }
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override
-    {
-    try
-        {
+
+    std::unique_ptr<Numeric> convertTo(const std::type_info& targetType) const {
+        if (targetType == typeid(FloatNumeric<float>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<float>>(static_cast<float>(complexNum.real())));
+        } else if (targetType == typeid(FloatNumeric<double>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<double>>(static_cast<double>(complexNum.real())));
+        } else if (targetType == typeid(ComplexNumeric<float>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<float>>(std::complex<float>(complexNum.real(), complexNum.imag())));
+        } else if (targetType == typeid(ComplexNumeric<double>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<double>>(std::complex<double>(complexNum.real(), complexNum.imag())));
+        } else if (targetType == typeid(IntNumeric)) {
+            return std::unique_ptr<Numeric>(std::make_unique<IntNumeric>(static_cast<int>(complexNum.real())));
+        } else {
+            throw std::runtime_error("Unsupported conversion");
+        }
+    }
+
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) {
+        try {
             const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
             std::complex<T> result = complexNum + complexValue.complexNum;
-            return std::make_unique<ComplexNumeric<T>>(result);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("sumOperation: Type mismatch, expected ComplexNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(ComplexNumeric<T>));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            std::complex<T> result = complexNum + complexValue.complexNum;
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("sumOperation: Memory allocation failed.");
         }
-    }    
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
-    {
-        try
-        {
+    }
+    
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) {
+        try {
             const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
             std::complex<T> result = complexNum - complexValue.complexNum;
-            return std::make_unique<ComplexNumeric<T>>(result);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("subtractOperation: Type mismatch, expected ComplexNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(*this));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            std::complex<T> result = complexNum - complexValue.complexNum;
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
-    }    
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
-    {
-        try
-        {
+    }
+
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) {
+        try {
             const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
             std::complex<T> result = complexNum * complexValue.complexNum;
-            return std::make_unique<ComplexNumeric<T>>(result);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("multiplyOperation: Type mismatch, expected ComplexNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(*this));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            std::complex<T> result = complexNum * complexValue.complexNum;
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("multiplyOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override
-    {
-        try
-        {
+
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) {
+        try {
             const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
-    
-            if (std::abs(complexValue.complexNum) == 0)
-            {
+
+            if (std::abs(complexValue.complexNum) == 0) {
                 throw std::runtime_error("divideOperation: Division by zero is not allowed.");
             }
-    
+
             std::complex<T> result = complexNum / complexValue.complexNum;
-            return std::make_unique<ComplexNumeric<T>>(result);
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("divideOperation: Type mismatch, expected ComplexNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(*this));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+
+            if (std::abs(complexValue.complexNum) == 0) {
+                throw std::runtime_error("divideOperation: Division by zero is not allowed.");
+            }
+
+            std::complex<T> result = complexNum / complexValue.complexNum;
+            return std::unique_ptr<Numeric>(std::make_unique<ComplexNumeric<T>>(result));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("divideOperation: Memory allocation failed.");
         }
     }
     
-    /*I will compare using Lexicographical comparison*/
-
-    /*I could use std::lexicographical_compare as it is generally used for
-    *comparing sequences (like arrays, vectors, or strings),
-    *not individual numbers. Since complex numbers have only two components
-    *(real and imaginary), a direct comparison using simple if statements is
-    * clearer and more efficient*/
-
-    bool lessThanOperation(const Numeric& second ) override
-    {
-        const ComplexNumeric& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-        if (complexNum.real() == complexValue.complexNum.real())
-            return complexNum.imag() < complexValue.complexNum.imag();
-        return complexNum.real() < complexValue.complexNum.real();
+    bool lessThanOperation(const Numeric& second) {
+        try {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            if (complexNum.real() == complexValue.complexNum.real()) {
+                return complexNum.imag() < complexValue.complexNum.imag();
+            }
+            return complexNum.real() < complexValue.complexNum.real();
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(ComplexNumeric<T>));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            if (complexNum.real() == complexValue.complexNum.real()) {
+                return complexNum.imag() < complexValue.complexNum.imag();
+            }
+            return complexNum.real() < complexValue.complexNum.real();
+        }
+    }
     
+    bool greaterThanOperation(const Numeric& second) {
+        try {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            if (complexNum.real() == complexValue.complexNum.real()) {
+                return complexNum.imag() > complexValue.complexNum.imag();
+            }
+            return complexNum.real() > complexValue.complexNum.real();
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(ComplexNumeric<T>));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            if (complexNum.real() == complexValue.complexNum.real()) {
+                return complexNum.imag() > complexValue.complexNum.imag();
+            }
+            return complexNum.real() > complexValue.complexNum.real();
+        }
     }
-    bool greaterThanOperation(const Numeric& second ) override
-    {
-        const ComplexNumeric& complexValue =  dynamic_cast<const ComplexNumeric<T>&>(second);
-        if (complexNum.real() == complexValue.complexNum.real())
-            return complexNum.imag() > complexValue.complexNum.imag();
-        return complexNum.real() > complexValue.complexNum.real();
+    
+    bool equalOperation(const Numeric& second) {
+        try {
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(second);
+            return (complexNum == complexValue.complexNum);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to ComplexNumeric<T>
+            auto converted = second.convertTo(typeid(ComplexNumeric<T>));
+            const ComplexNumeric<T>& complexValue = dynamic_cast<const ComplexNumeric<T>&>(*converted);
+            return (complexNum == complexValue.complexNum);
+        }
     }
-    bool equalOperation(const Numeric& second ) override
-    {
-        const ComplexNumeric& complexValue =  dynamic_cast< const ComplexNumeric<T>&>(second);
-        return (complexNum == complexValue.complexNum);    
-    }
-    std::string toString() const override
-    {
+    
+    std::string toString() const {
         return "(" + std::to_string(complexNum.real()) + " + " + 
-        std::to_string(complexNum.imag()) + "i)";    
+            std::to_string(complexNum.imag()) + "i)";
     }
     ~ComplexNumeric()
     {
@@ -345,85 +414,108 @@ class ComplexNumeric : public Numeric
 };
 
 template <charTemp T>
-class charNumeric : public Numeric
-{
-    public:
+class charNumeric : public Numeric {
+public:
     T charValue;
 
-    charNumeric(T char_val)
-    {
+    charNumeric(T char_val) : charValue(char_val) {
         #if DEBUG == 1
-        std::cout << "CharNumeric class constructor is calledwith value: " << charValue << std::endl;
-        #endif // DEBUG    
-    }    
-    std::unique_ptr<Numeric> sumOperation(const Numeric& second) override
-    {
-        
-        try
-        {
+        std::cout << "CharNumeric class constructor is called with value: " << charValue << std::endl;
+        #endif // DEBUG
+    }
+
+    std::unique_ptr<Numeric> convertTo(const std::type_info& targetType) const {
+        if (targetType == typeid(FloatNumeric<float>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<float>>(static_cast<float>(static_cast<int>(charValue))));
+        } else if (targetType == typeid(FloatNumeric<double>)) {
+            return std::unique_ptr<Numeric>(std::make_unique<FloatNumeric<double>>(static_cast<double>(static_cast<int>(charValue))));
+        } else if (targetType == typeid(IntNumeric)) {
+            return std::unique_ptr<Numeric>(std::make_unique<IntNumeric>(static_cast<int>(charValue)));
+        } else {
+            throw std::runtime_error("Unsupported conversion");
+        }
+    }
+
+    std::unique_ptr<Numeric> sumOperation(const Numeric& second) {
+        try {
             const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
-            return std::make_unique<charNumeric<T>>(toascii(charValue + secondChar.charValue));
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("sumOperation: Type mismatch, expected charNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<charNumeric<T>>(toascii(charValue + secondChar.charValue)));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to charNumeric<T>
+            auto converted = second.convertTo(typeid(charNumeric<T>));
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(*converted);
+            return std::unique_ptr<Numeric>(std::make_unique<charNumeric<T>>(toascii(charValue + secondChar.charValue)));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("sumOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) override
-    {
-        try
-        {
+
+    std::unique_ptr<Numeric> subtractOperation(const Numeric& second) {
+        try {
             const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
-            return std::make_unique<charNumeric<T>>(toascii(charValue - secondChar.charValue));
-        }
-        catch (const std::bad_cast& e)
-        {
-            throw std::runtime_error("subtractOperation: Type mismatch, expected charNumeric<T>.");
-        }
-        catch (const std::bad_alloc& e)
-        {
+            return std::unique_ptr<Numeric>(std::make_unique<charNumeric<T>>(toascii(charValue - secondChar.charValue)));
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to charNumeric<T>
+            auto converted = second.convertTo(typeid(charNumeric<T>));
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(*converted);
+            return std::unique_ptr<Numeric>(std::make_unique<charNumeric<T>>(toascii(charValue - secondChar.charValue)));
+        } catch (const std::bad_alloc& e) {
             throw std::runtime_error("subtractOperation: Memory allocation failed.");
         }
     }
-    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) override
-    {
+
+    std::unique_ptr<Numeric> multiplyOperation(const Numeric& second) {
         throw std::runtime_error("multiplyOperation: Operation not supported for characters.");
     }
-    std::unique_ptr<Numeric> divideOperation(const Numeric& second) override 
-    {
+
+    std::unique_ptr<Numeric> divideOperation(const Numeric& second) {
         throw std::runtime_error("divideOperation: Operation not supported for characters.");
-    }  
-    bool lessThanOperation(const Numeric& second ) override
-    {
-        const charNumeric<T>& secondChar= dynamic_cast<charNumeric<T>&>(second);
-        return (charValue < secondChar.charValue );
-    
     }
-    bool greaterThanOperation(const Numeric& second ) override
-    {
-        const charNumeric<T>& secondChar= dynamic_cast<charNumeric<T>&>(second);
-        return (charValue >  secondChar.charValue);    
+
+    bool lessThanOperation(const Numeric& second) {
+        try {
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
+            return (charValue < secondChar.charValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to charNumeric<T>
+            auto converted = second.convertTo(typeid(charNumeric<T>));
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(*converted);
+            return (charValue < secondChar.charValue);
+        }
     }
-    bool equalOperation(const Numeric& second ) override
-    {
-        const charNumeric<T>& secondChar= dynamic_cast<charNumeric<T>&>(second);
-        return (charValue ==  secondChar.charValue);    
+
+    bool greaterThanOperation(const Numeric& second) {
+        try {
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
+            return (charValue > secondChar.charValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to charNumeric<T>
+            auto converted = second.convertTo(typeid(charNumeric<T>));
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(*converted);
+            return (charValue > secondChar.charValue);
+        }
     }
-    std::string toString() const override
-    {
+
+    bool equalOperation(const Numeric& second) {
+        try {
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(second);
+            return (charValue == secondChar.charValue);
+        } catch (const std::bad_cast&) {
+            // If the types don't match, convert the second operand to charNumeric<T>
+            auto converted = second.convertTo(typeid(charNumeric<T>));
+            const charNumeric<T>& secondChar = dynamic_cast<const charNumeric<T>&>(*converted);
+            return (charValue == secondChar.charValue);
+        }
+    }
+
+    std::string toString() const {
         return std::string(1, charValue);
     }
-    ~charNumeric()
-    {
 
+    ~charNumeric() {
         #if DEBUG == 1
         std::cout << "CharNumeric Class destructor with value: " << charValue << std::endl;
         #endif // DEBUG
-
     }
 };
 
