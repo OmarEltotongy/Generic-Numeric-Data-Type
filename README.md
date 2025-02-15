@@ -212,7 +212,7 @@ Exception caught: Type mismatch -> std::bad_cast
 
 2. **Compile the Code**:
    ```bash
-   g++ -std=c++20 -o numeric_main main.cpp
+   g++ -std=c++20 -o numeric_main main.cpp Numeric.cpp
    ```
 
 3. **Run the Program**:
