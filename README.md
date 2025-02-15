@@ -22,7 +22,7 @@ The implementation follows object-oriented design principles and uses **polymorp
 ## SumOperation Function Explanation
 
 ## Overview
-The `sumOperation` function is a member of a class (likely `FloatNumeric<T>`) that overrides a virtual function from a base class. It performs an addition operation between the current object (`*this`) and another `Numeric` type object (`second`). The function handles different types of `Numeric` objects dynamically and ensures the correct arithmetic operations are applied.
+The `sumOperation` function is a member of a class (`FloatNumeric<T>`) that overrides a virtual function from a base class. It performs an addition operation between the current object (`*this`) and another `Numeric` type object (`second`). The function handles different types of `Numeric` objects dynamically and ensures the correct arithmetic operations are applied.
 
 ## Function Logic
 ### 1. Checking if `second` is a `FloatNumeric<T>`
